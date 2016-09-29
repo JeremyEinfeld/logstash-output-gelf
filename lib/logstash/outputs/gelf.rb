@@ -22,6 +22,9 @@ class LogStash::Outputs::Gelf < LogStash::Outputs::Base
   # The transport protocol, either udp or tcp.
   config :protocol, :validate => ["tcp", "udp"], :default => "udp"
 
+  # The number of connections to open
+  config :connections, :validate => :number, :default => 1
+
   # Allow overriding of the GELF `sender` field. This is useful if you
   # want to use something other than the event's source host as the
   # "sender" of an event. A common case for this is using the application name
@@ -84,6 +87,10 @@ class LogStash::Outputs::Gelf < LogStash::Outputs::Base
 
     #@gelf = GELF::Notifier.new(@host, @port, @chunksize, option_hash)
     @gelf ||= GELF::Notifier.new(@host, @port, @chunksize, { :protocol => GELF::Protocol.const_get(@protocol.upcase) })
+
+    if @connections > 1
+      @gelf.addresses = Array.new(@connections, [@host, @port])
+    end
 
     # This sets the 'log level' of gelf; since we're forwarding messages, we'll
     # want to forward *all* messages, so set level to 0 so all messages get
